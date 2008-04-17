@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>File: README</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <meta http-equiv="Content-Script-Type" content="text/javascript" />
+  <link rel="stylesheet" href=".././rdoc-style.css" type="text/css" media="screen" />
+  <script type="text/javascript">
+  // <![CDATA[
+
+  function popupCode( url ) {
+    window.open(url, "Code", "resizable=yes,scrollbars=yes,toolbar=no,status=no,height=150,width=400")
+  }
+
+  function toggleCode( id ) {
+    if ( document.getElementById )
+      elem = document.getElementById( id );
+    else if ( document.all )
+      elem = eval( "document.all." + id );
+    else
+      return false;
+
+    elemStyle = elem.style;
+    
+    if ( elemStyle.display != "block" ) {
+      elemStyle.display = "block"
+    } else {
+      elemStyle.display = "none"
+    }
+
+    return true;
+  }
+  
+  // Make codeblocks hidden by default
+  document.writeln( "<style type=\"text/css\">div.method-source-code { display: none }</style>" )
+  
+  // ]]>
+  </script>
+
+</head>
+<body>
+
+
+
+  <div id="fileHeader">
+    <h1>README</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>README
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Fri Dec 22 08:15:18 CET 2006</td>
+    </tr>
+    </table>
+  </div>
+  <!-- banner header -->
+
+  <div id="bodyContent">
+
+
+
+  <div id="contextContent">
+
+    <div id="description">
+      <h1>ActsAsImage</h1>
+<p>
+This plugin takes a simple approach to saving images. It will scale images
+and save them to the file system, but it can&#8217;t be used to save other
+types of files. It can handle all the types of images that RMagick can, and
+will differentiate between normal images and animations, saving them as
+JPEG and GIF respectively. You can specify as many different sizes as you
+want and whether they will be scaled or cropped.
+</p>
+<h2>Installing</h2>
+<p>
+Check out the plugin from the repository and put it into the
+<tt>vendor/plugins</tt> directory:
+</p>
+<pre>
+  script/plugin install http://svn.2750flesk.com/plugins/trunk/acts_as_image
+</pre>
+<p>
+Use <tt>-x</tt> if you want Subversion to add an <tt>svn:externals</tt>
+entry for the plugin.
+</p>
+<h2>Model</h2>
+<p>
+If you haven&#8217;t created your model yet, you can use the generator to
+create a model and a migration that can be used with ActsAsImage:
+</p>
+<pre>
+  script/generate acts_as_image model Image
+</pre>
+<p>
+Then, migrate to create the new table:
+</p>
+<pre>
+  rake db:migrate
+</pre>
+<p>
+If you have an existing model that you want to use, make sure it has the
+fields <tt>content_type</tt>, <tt>hash_string</tt> and
+<tt>original_filename</tt>. In addition, the plugin will create an
+attribute <tt>file</tt> on the model that will be used to hold the image
+before it is written to disk. Finally, add <tt>acts_as_image</tt> to the
+model class definition.
+</p>
+<h2>Controller and view</h2>
+<p>
+You will have to add the uploaded file to the model&#8217;s <tt>file</tt>
+attribute before saving it. You can have this done automatically by making
+sure <tt>file</tt> is accessible to mass assignment and naming the field in
+the form <tt>model_name[file]</tt>.
+</p>
+<h2>Paths and sizes</h2>
+<p>
+You can control which path the images will be written to, and what sizes
+the image will be resized to. Here&#8217;s an example model definition:
+</p>
+<pre>
+  class Image &lt; ActiveRecord::Base
+
+    acts_as_image #Must come first
+
+    self.image_sizes = {
+      :original =&gt; '100%x100%',
+      :large =&gt; '&gt;800x600',
+      :medium =&gt; '&gt;640x480',
+      :small =&gt; '&gt;320x200',
+      :thumb =&gt; ['100x100!', :crop]
+    }
+
+    self.image_save_path = File.join(RAILS_ROOT, 'public', 'images', 'uploads')
+    self.image_read_path = ['images', 'uploads'].join('/')
+
+  end
+</pre>
+<p>
+<tt>Image.image_sizes</tt> contains a hash with the names and sizes of the
+images that will be written to disk. The key will be used as the filename,
+and the value is an RMagick geometry string (<a
+href="http://www.simplesystems.org/RMagick/doc/imusage.html#geometry">www.simplesystems.org/RMagick/doc/imusage.html#geometry</a>).
+If the value is an array, the first element is the geometry string and the
+second is either :crop or :scale, specifying if the image should be scaled
+or cropped (after being resized). The original image won&#8217;t be saved
+by default, but you can specify an <tt>:original</tt> entry with
+<tt>&#8216;100%x100%&#8217;</tt> to achieve the same result.
+</p>
+<p>
+<tt>Image.image_save_path</tt> is the path in which the images will be
+written on the server. <tt>Image.image_read_path</tt> is the path to the
+image that a browser sees.
+</p>
+<p>
+Each image also has its own sub-path that consists of a MD5 hash that is
+split up into three parts. This is to avoid hitting file system limits on
+how many files a directory can contain. So, the full path to an image will
+look something like
+<tt>public/images/uploads/3/d/35830c5caa0009b1e9b7d51964d280/small.jpg</tt>.
+The path for use in a view can be retrieved via the <tt>url</tt> method on
+the image:
+</p>
+<pre>
+  &lt;%= image_tag(image.url('small'), :alt =&gt; h(image.title)) %&gt;
+</pre>
+<h2>Contact me</h2>
+<p>
+You can reach me by e-mail at toredarell a gmail , com
+</p>
+<p>
+I will most likely <em>not</em> add new features, but bug fixes (or just
+letting me know about them) or minor improvements are welcome.
+</p>
+
+    </div>
+
+
+   </div>
+
+
+  </div>
+
+
+    <!-- if includes -->
+
+    <div id="section">
+
+
+
+
+
+      
+
+
+    <!-- if method_list -->
+
+
+  </div>
+
+
+<div id="validator-badges">
+  <p><small><a href="http://validator.w3.org/check/referer">[Validate]</a></small></p>
+</div>
+
+</body>
+</html>

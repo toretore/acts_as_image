@@ -1,0 +1,7 @@
+<action> must be one of the following:
+
+    model ModelName                  Create an image model named ModelName or
+                                     Image if ModelName is missing. Will also
+                                     create a migration by default.
+    
+    migration table_name             Create the migration for the image table.

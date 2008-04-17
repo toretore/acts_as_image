@@ -1,0 +1,88 @@
+= ActsAsImage
+
+This plugin takes a simple approach to saving images. It will scale images
+and save them to the file system, but it can't be used to save other types of
+files. It can handle all the types of images that RMagick can, and will
+differentiate between normal images and animations, saving them as JPEG
+and GIF respectively. You can specify as many different sizes as you
+want and whether they will be scaled or cropped.
+
+== Installing
+
+Check out the plugin from the repository and put it into the <tt>vendor/plugins</tt>
+directory:
+
+  script/plugin install http://svn.2750flesk.com/plugins/trunk/acts_as_image
+
+Use <tt>-x</tt> if you want Subversion to add an <tt>svn:externals</tt> entry
+for the plugin.
+
+== Model
+
+If you haven't created your model yet, you can use the generator to create a model
+and a migration that can be used with ActsAsImage:
+
+  script/generate acts_as_image model Image
+
+Then, migrate to create the new table:
+
+  rake db:migrate
+
+If you have an existing model that you want to use,
+make sure it has the fields <tt>content_type</tt>, <tt>hash_string</tt> and <tt>original_filename</tt>.
+In addition, the plugin will create an attribute <tt>file</tt> on the model that will be used to hold
+the image before it is written to disk. Finally, add <tt>acts_as_image</tt> to the model class definition.
+
+== Controller and view
+
+You will have to add the uploaded file to the model's <tt>file</tt> attribute before
+saving it. You can have this done automatically by making sure <tt>file</tt> is accessible
+to mass assignment and naming the field in the form <tt>model_name[file]</tt>.
+
+== Paths and sizes
+
+You can control which path the images will be written to, and what sizes the image will be resized to.
+Here's an example model definition:
+
+  class Image < ActiveRecord::Base
+  
+    acts_as_image #Must come first
+    
+    self.image_sizes = {
+      :original => '100%x100%',
+      :large => '>800x600',
+      :medium => '>640x480',
+      :small => '>320x200',
+      :thumb => ['100x100!', :crop]
+    }
+    
+    self.image_save_path = File.join(RAILS_ROOT, 'public', 'images', 'uploads')
+    self.image_read_path = ['images', 'uploads'].join('/')
+  
+  end
+
+<tt>Image.image_sizes</tt> contains a hash with the names and sizes of the images that will
+be written to disk. The key will be used as the filename, and the value is an RMagick geometry
+string (http://www.simplesystems.org/RMagick/doc/imusage.html#geometry). If the value is an
+array, the first element is the geometry string and the second is either :crop or :scale, specifying
+if the image should be scaled or cropped (after being resized). The original image won't be saved
+by default, but you can specify an <tt>:original</tt> entry with <tt>'100%x100%'</tt> to achieve the
+same result.
+
+<tt>Image.image_save_path</tt> is the path in which the images will be written on the server.
+<tt>Image.image_read_path</tt> is the path to the image that a browser sees.
+
+Each image also has its own sub-path that consists of a MD5 hash that is split up into three parts.
+This is to avoid hitting file system limits on how many files a directory can contain. So, the full
+path to an image will look something like
+<tt>public/images/uploads/3/d/35830c5caa0009b1e9b7d51964d280/small.jpg</tt>. The path for use in a view
+can be retrieved via the <tt>url</tt> method on the image:
+
+  <%= image_tag(image.url('small'), :alt => h(image.title)) %>
+
+== Contact me
+
+You can reach me by e-mail at toredarell a gmail , com
+
+I will most likely <em>not</em> add new features, but bug fixes
+(or just letting me know about them) or minor improvements are welcome.
